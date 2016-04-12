@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 -- | Tokens for Toml filetype
 module Text.Toml.Types.Tokens(Token(..), tokenPos) where
    import Data.Text (Text)
@@ -43,4 +44,5 @@ module Text.Toml.Types.Tokens(Token(..), tokenPos) where
       IntegerT       pos _ _ -> pos
       FloatT         pos _ _ -> pos
       DateT          pos _   -> pos
+      LocalDateT     pos _   -> pos
 
