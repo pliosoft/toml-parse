@@ -162,12 +162,12 @@ module Text.Toml.Tokenizer
 
    -- | Parse a quoted string, @\"fizbuz\"@.
    dQuotedString :: Position -> Parser (Token, Position)
-   dQuotedString pos = char '"' *> (cons <$> takeWhile1 (/= '"')) <* char '"'
+   dQuotedString pos = char '"' *> (cons <$> takeWhile (/= '"')) <* char '"'
      where
          cons x = (QuotedStringT pos x, second (+ (fromIntegral $ T.length x + 2)) pos)
    -- | Parse a quoted string, @\"fizbuz\"@.
    sQuotedString :: Position -> Parser (Token, Position)
-   sQuotedString pos = char '\'' *> (cons <$> takeWhile1 (/= '\'')) <* char '\''
+   sQuotedString pos = char '\'' *> (cons <$> takeWhile (/= '\'')) <* char '\''
      where
          cons x = (QuotedStringT pos x, second (+ (fromIntegral $ T.length x + 2)) pos)
 
@@ -243,6 +243,6 @@ module Text.Toml.Tokenizer
             case c of
                Just '\n' -> anyChar *> go (line+1) 1
                Just ' '  -> anyChar *> go line (col+1)
-               Just '#'  -> anyChar *> takeWhile1 (/='\n') *> go line (col+1)
+               Just '#'  -> anyChar *> takeWhile (/='\n') *> go line (col+1)
                Just '\t' -> anyChar *> go line (col+4)
                _ -> return (line, col)

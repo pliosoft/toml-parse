@@ -8,6 +8,7 @@ module Text.Toml.Combinators
     , bool
     , lbracket
     , rbracket
+    , bracketed
     , lbrace
     , rbrace
     , comma
@@ -110,6 +111,9 @@ module Text.Toml.Combinators
    localDate = satisfy it
        where it (LocalDateT _ l) = Just l
              it _ = Nothing
+
+   bracketed :: Parser a -> Parser a
+   bracketed = between lbracket rbracket
 
    -- | Satisfy the given predicate from the token stream.
    satisfy :: (Token -> Maybe a) -> Parser a

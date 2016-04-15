@@ -12,14 +12,29 @@ import Data.Text (Text)
 import Data.Time.LocalTime
 import Text.Parsec
 
+-- Internal types for converting from parsed data to final Toml datatype
+type SectionKey = Text
+data Section = Section SectionKey [(Text, TNamable)]
+
 parseToml :: String -> Text -> Either String Toml
 parseToml src = first show . parse parser src <=< tokenize
 
+-- TODO: Handle subsections, instead of fst'ing them away
 parser :: Parser Toml
-parser = fromList <$> manyTill assignment eof
+parser = (fromList . fst) <$> sections <* eof
+
+sections :: Parser ([(Text, TNamable)], [Section])
+sections = (,) <$> many assignment <*> many section
+
+-- TODO: qualified section keys will probably need another SectionKey entry
+sectionKey :: Parser SectionKey
+sectionKey = choice [identifier, quoted]
+
+section :: Parser Section
+section = Section <$> (bracketed sectionKey) <*> many assignment
 
 assignment :: Parser (Text, TNamable)
-assignment = (,) <$> (identifier <* equal) <*> value
+assignment = (,) <$> ((identifier <|> quoted) <* equal) <*> value
 
 value :: Parser TNamable
 value = choice
@@ -30,7 +45,7 @@ value = choice
     , TDouble <$> float
     , TDatetime . zonedTimeToUTC <$> date
     , TDatetime . localTimeToUTC tz <$> localDate
-    ]
+    ] <?> "value"
 
   where
     tz :: TimeZone
