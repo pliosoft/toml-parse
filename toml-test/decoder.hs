@@ -11,7 +11,7 @@ import System.Exit (exitFailure)
 
 import qualified Data.Text.IO as T
 
-import Text.Toml.Parser
+import Text.Toml.Parser2
 import Text.Toml.Types.Toml
 
 import qualified Data.HashMap.Strict as Map
