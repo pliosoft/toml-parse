@@ -8,14 +8,14 @@ import Test.QuickCheck
 
 testDocument :: Toml
 testDocument = insert "A" (
-                  TTable Outline (insert "B" (TString "Hello World") (
+                  TTable undefined (insert "B" (TString "Hello World") (
                      insert "D" (TDouble 2.0) (
                      insert "X" (TInteger 42) (
                      insert "Y" (TBoolean True)
                      empty))
                   ))
                )
-               (insert "Arr" (TArray Inline [TDouble 3.14, TDouble 3]) empty)
+               (insert "Arr" (TArray undefined [TDouble 3.14, TDouble 3]) empty)
 
 main :: IO ()
 main = hspec spec
