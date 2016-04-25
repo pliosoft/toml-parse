@@ -9,6 +9,7 @@ import Text.Toml.Types.Toml
 import Control.Monad ((<=<))
 import Data.Bifunctor (first)
 import Data.Text (Text)
+import Data.List (foldl')
 import Data.Time.LocalTime
 import Text.Parsec
 
@@ -19,9 +20,12 @@ data Section = Section SectionKey [(Text, TNamable)]
 parseToml :: String -> Text -> Either String Toml
 parseToml src = first show . parse parser src <=< tokenize
 
--- TODO: Handle subsections, instead of fst'ing them away
+mergeSection :: Toml -> Section -> Toml
+mergeSection t (Section key lst) = insertChildren key Inline lst t
+
 parser :: Parser Toml
-parser = (fromList . fst) <$> sections <* eof
+parser = do (intro, rest) <- sections <* eof
+            return $ foldl' mergeSection (fromList intro) rest
 
 sections :: Parser ([(Text, TNamable)], [Section])
 sections = (,) <$> many assignment <*> many section

@@ -6,6 +6,7 @@ module Text.Toml.Types.Toml
     , fromList
     , insert
     , empty
+    , insertChildren
     , Inlined(..)
     , TNamable(..)
     ) where
@@ -44,6 +45,10 @@ fromList = Toml . Map.fromList
 insert :: Text -> TNamable -> Toml -> Toml
 insert t n a = Toml (Map.insert t n (unToml a))
 
+-- | Insert a whole set of values under a certain key
+insertChildren :: Text -> Inlined -> [(Text, TNamable)] -> Toml -> Toml
+insertChildren t il n a = Toml (Map.insert t tbl (unToml a))
+   where tbl = TTable il $ fromList n
 
 -- | Create an empty toml document
 empty :: Toml
