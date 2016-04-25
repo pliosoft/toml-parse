@@ -37,7 +37,9 @@ module Text.Toml.Tokenizer
 
    -- | Parse a token.
    token :: Position -> Parser (Token, Position)
-   token pos = dQuotedString pos
+   token pos = dMultilineString pos
+           <|> sMultilineString pos
+           <|> dQuotedString pos
            <|> sQuotedString pos
            <|> date          pos
            <|> float         pos
@@ -79,8 +81,8 @@ module Text.Toml.Tokenizer
    pfloat = do v <- psdecimal
                (frac,exp) <- ((,) <$> (option 0 (char '.' *> pfdecimal)) <*> ((char 'e' <|> char 'E') *> psdecimal))
                          <|> ((,) <$> (char '.' *> pfdecimal) <*> (option 0 ((char 'e' <|> char 'E') *> psdecimal)))
-               return $ if v < 0 then (((toRational v) - frac) * 10 ^^ exp)
-                                 else (((toRational v) + frac) * 10 ^^ exp)
+               return $ if v < 0 then ((toRational v) - frac) * 10 ^^ exp
+                                 else ((toRational v) + frac) * 10 ^^ exp
 
    -- | Parse a TOML integer
    integer :: Position -> Parser (Token, Position)
@@ -160,11 +162,40 @@ module Text.Toml.Tokenizer
                      Just jv -> return (jv, second (+ (T.length raw)) pos)
                      Nothing -> fail "invalid date"
 
+   dMultilineToken = string "\"\"\""
+   sMultilineToken = string "\'\'\'"
+   multilineWhitespace = char '\\' >> char '\n' >> takeWhile (\x -> x == ' ' || x == '\n' || x == '\t')
+
+   -- | Parse a multiline single quoted string, @'''fizbuz'''@.
+   sMultilineString :: Position -> Parser (Token, Position)
+   sMultilineString pos = do (raw, v) <- match mlparse
+                             return (QuotedStringT pos v, second (+ (T.length raw)) pos)
+     where mlparse = do sMultilineToken
+                        skipWhile (\c -> c == '\n')
+                        skipMany multilineWhitespace
+                        body <- manyTill chunk sMultilineToken
+                        return . T.pack $ body
+           chunk = (skipMany multilineWhitespace) *> anyChar
+
+
+
+   -- | Parse a multiline double quoted string, @\"\"\"fizbuz\"\"\"@.
+   dMultilineString :: Position -> Parser (Token, Position)
+   dMultilineString pos = do (raw, v) <- match mlparse
+                             return (QuotedStringT pos v, second (+ (T.length raw)) pos)
+     where mlparse = do dMultilineToken
+                        skipWhile (\c -> c == '\n')
+                        skipMany multilineWhitespace
+                        body <- manyTill chunk dMultilineToken
+                        return . T.pack $ body
+           chunk = anyChar <* (skipMany multilineWhitespace)
+
    -- | Parse a quoted string, @\"fizbuz\"@.
    dQuotedString :: Position -> Parser (Token, Position)
    dQuotedString pos = char '"' *> (cons <$> takeWhile (/= '"')) <* char '"'
      where
          cons x = (QuotedStringT pos x, second (+ (fromIntegral $ T.length x + 2)) pos)
+
    -- | Parse a quoted string, @\"fizbuz\"@.
    sQuotedString :: Position -> Parser (Token, Position)
    sQuotedString pos = char '\'' *> (cons <$> takeWhile (/= '\'')) <* char '\''

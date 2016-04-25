@@ -4,7 +4,6 @@ module Text.Toml.QuerySpec (main, spec) where
 import Text.Toml.Types.Toml
 import Text.Toml.Query
 import Test.Hspec
-import Test.QuickCheck
 
 testDocument :: Toml
 testDocument = insert "A" (

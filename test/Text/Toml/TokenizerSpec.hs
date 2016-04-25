@@ -57,6 +57,18 @@ spec = do
       it "simple quoted string" $ do
          tokIs "\"hello\" 'single quote'"
             [QuotedStringT (1,1) "hello",QuotedStringT (1,9) "single quote"]
+      it "multiline dquoted string" $ do
+         tokIs "\"\"\"hello\n   world\"\"\""
+            [QuotedStringT (1,1) "hello\n   world"]
+      it "multiline squoted string" $ do
+         tokIs "'''hello\n   world'''"
+            [QuotedStringT (1,1) "hello\n   world"]
+      it "multiline squoted string with inner escaped whitespace" $ do
+         tokIs "'''hello \\\n   world'''"
+            [QuotedStringT (1,1) "hello world"]
+      it "multiline squoted string with leading newline" $ do
+         tokIs "'''\nhello\n   world'''"
+            [QuotedStringT (1,1) "hello\n   world"]
 
    describe "Date Tokenization" $ do
       it "simple toml dates" $ do
