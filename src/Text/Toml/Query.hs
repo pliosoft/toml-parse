@@ -69,12 +69,6 @@ joinPaths :: TomlPath -> TomlPath -> TomlPath
 joinPaths a b = TomlPath (unPath a ++ unPath b)
 
 
--- | Given a key and a toml document, maybe produce the raw node contained at that location. This is
--- considered a primitive operation. Please use specific lookup functions to get access to the raw data.
-lookup :: Text -> Toml -> Maybe TNamable
-lookup key doc = Map.lookup key (unToml doc)
-
-
 -- | how to index any given level of a namable structure
 lookupSinglePath :: Maybe TNamable -> TomlPathElement -> Maybe TNamable
 lookupSinglePath (Just (TTable _ n)) (TableLookup key) = lookup key n
@@ -141,3 +135,6 @@ lookupDate path doc =
    case lookupPath path doc of
       Just (TDatetime t) -> return t
       _ -> Nothing
+
+
+

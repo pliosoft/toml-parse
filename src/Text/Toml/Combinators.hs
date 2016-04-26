@@ -9,6 +9,7 @@ module Text.Toml.Combinators
     , lbracket
     , rbracket
     , bracketed
+    , doubleBracketed
     , lbrace
     , rbrace
     , comma
@@ -112,6 +113,9 @@ module Text.Toml.Combinators
        where it (LocalDateT _ l) = Just l
              it _ = Nothing
 
+   doubleBracketed :: Parser a -> Parser a
+   doubleBracketed = between (lbracket >> lbracket) (rbracket >> rbracket)
+
    bracketed :: Parser a -> Parser a
    bracketed = between lbracket rbracket
 
@@ -127,7 +131,7 @@ module Text.Toml.Combinators
                         KeywordTrueT{} -> "true"
                         KeywordFalseT{} -> "false"
                         LeftBracketT{} -> "left bracket"
-                        RightBracketT{} -> "right bracket"
+                        RightBracketT{} -> "end of section"
                         LeftBraceT{} -> "left brace"
                         RightBraceT{} -> "right brace"
                         CommaT{} -> "comma"

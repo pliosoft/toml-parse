@@ -41,7 +41,7 @@ executable toml-decoder
                      , aeson
                      , text
                      , time
-                     , unordered-containers
+                     , unordered-containers >= 0.2.5 && < 1.0
   default-language:    Haskell2010
 
 test-suite toml-parse-test

@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Text.Toml.Parser
     ( parseToml
     ) where
@@ -16,8 +17,9 @@ import Data.Time.LocalTime
 import Text.Parsec
 
 -- Internal types for converting from parsed data to final Toml datatype
-type SectionKey = Text
-data Section = Section SectionKey [(Text, TNamable)]
+type SectionKey = [Text]
+data Section = ObjSection SectionKey [(Text, TNamable)]
+             | ArraySection SectionKey [(Text, TNamable)]
 
 firstDup :: Ord a => [a] -> Maybe a
 firstDup xs = dup xs Set.empty
@@ -29,24 +31,32 @@ firstDup xs = dup xs Set.empty
 parseToml :: String -> Text -> Either String Toml
 parseToml src = first show . parse parser src <=< tokenize
 
-mergeSection :: Toml -> Section -> Toml
-mergeSection t (Section key lst) = insertChildren key Inline lst t
+mergeSection :: Section -> Toml -> Toml
+mergeSection (ObjSection key lst) t = insertChildren key lst t
+mergeSection (ArraySection key lst) t = appendChildren key lst t
 
 parser :: Parser Toml
 parser = do (intro, rest) <- sections <* eof
-            case firstDup (map (\(Section k _) -> k) rest) of
-               Nothing -> return $ foldl' mergeSection (fromList intro) rest
-               Just x -> unexpected $ "Duplicate key " ++ (T.unpack x)
+            case firstDup (map fst intro) of
+               Just x -> unexpected $ "duplicate " ++ (T.unpack x)
+               Nothing ->
+                  case firstDup (map skey rest) of
+                     Just x -> unexpected $ "duplicate section " ++ (T.unpack (T.intercalate "." x))
+                     Nothing -> return $ foldr mergeSection (fromList intro) rest
+
+skey :: Section -> SectionKey
+skey (ObjSection k _) = k
+skey (ArraySection k _) = k
 
 sections :: Parser ([(Text, TNamable)], [Section])
 sections = (,) <$> many assignment <*> many section
 
--- TODO: qualified section keys will probably need another SectionKey entry
 sectionKey :: Parser SectionKey
-sectionKey = choice [identifier, quoted]
+sectionKey = (choice [identifier, quoted]) `sepBy1` period
 
 section :: Parser Section
-section = Section <$> (bracketed sectionKey) <*> many assignment
+section = ArraySection <$> (try $ doubleBracketed sectionKey) <*> many assignment
+      <|> ObjSection   <$> (bracketed sectionKey)       <*> many assignment
 
 assignment :: Parser (Text, TNamable)
 assignment = (,) <$> ((identifier <|> quoted) <* equal) <*> value
