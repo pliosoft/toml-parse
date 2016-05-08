@@ -21,7 +21,7 @@ tableToToml = Toml . Map.map nodeToNamable
 
 nodeToNamable :: Node -> TNamable
 nodeToNamable (VTable table) = TTable undefined $ tableToToml table
-nodeToNamable (VTArray tables) = TArray undefined $ map (nodeToNamable . VTable) tables
+nodeToNamable (VTArray tables) = TTableArray undefined $ map tableToToml tables
 nodeToNamable (VString s) = TString s
 nodeToNamable (VInteger i) = TInteger i
 nodeToNamable (VFloat d) = TDouble d

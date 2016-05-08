@@ -21,6 +21,7 @@ instance ToJSON Toml where
 
 instance ToJSON TNamable where
     toJSON (TTable _ t) = toJSON t
+    toJSON (TTableArray _ x) = toJSON x
     toJSON (TArray _ x) = object
         [ "type" .= ("array" :: String)
         , "value" .= toJSON x
