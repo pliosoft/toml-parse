@@ -28,6 +28,7 @@ data Inlined = Inline | Outline | ImplicitOutline
 
 -- | Anything that can be named in a toml document.
 data TNamable = TTable       Inlined  Toml
+              | TTableArray  Inlined [Toml]
               | TArray       Inlined [TNamable]
               | TString               Text
               | TInteger              Int64

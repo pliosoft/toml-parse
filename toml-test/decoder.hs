@@ -11,7 +11,7 @@ import System.Exit (exitFailure)
 
 import qualified Data.Text.IO as T
 
-import Text.Toml.Parser
+import Text.Toml.Parser2
 import Text.Toml.Types.Toml
 
 import qualified Data.HashMap.Strict as Map
@@ -21,6 +21,7 @@ instance ToJSON Toml where
 
 instance ToJSON TNamable where
     toJSON (TTable _ t) = toJSON t
+    toJSON (TTableArray _ x) = toJSON x
     toJSON (TArray _ x) = object
         [ "type" .= ("array" :: String)
         , "value" .= toJSON x
