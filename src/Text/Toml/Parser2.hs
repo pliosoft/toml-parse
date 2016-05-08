@@ -20,14 +20,11 @@ tableToToml :: Table -> Toml
 tableToToml = Toml . Map.map nodeToNamable
 
 nodeToNamable :: Node -> TNamable
-nodeToNamable (NTValue value) = valueToNamable value
-nodeToNamable (NTable table) = TTable undefined $ tableToToml table
-nodeToNamable (NTArray tables) = TArray undefined $ map (TTable undefined . tableToToml) tables
-
-valueToNamable :: TValue -> TNamable
-valueToNamable (VString s) = TString s
-valueToNamable (VInteger i) = TInteger i
-valueToNamable (VFloat d) = TDouble d
-valueToNamable (VBoolean b) = TBoolean b
-valueToNamable (VDatetime t) = TDatetime t
-valueToNamable (VArray values) = TArray undefined $ map valueToNamable values
+nodeToNamable (VTable table) = TTable undefined $ tableToToml table
+nodeToNamable (VTArray tables) = TArray undefined $ map (nodeToNamable . VTable) tables
+nodeToNamable (VString s) = TString s
+nodeToNamable (VInteger i) = TInteger i
+nodeToNamable (VFloat d) = TDouble d
+nodeToNamable (VBoolean b) = TBoolean b
+nodeToNamable (VDatetime t) = TDatetime t
+nodeToNamable (VArray nodes) = TArray undefined $ map nodeToNamable nodes
