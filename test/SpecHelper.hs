@@ -1,20 +1,14 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Main (main) where
+module SpecHelper where
 
 import Data.Aeson
 import Data.Char (toLower)
 import Data.Time.Format
-import Data.Text.Lazy (toStrict)
-import Data.Text.Lazy.Encoding (decodeUtf8)
-import System.Exit (exitFailure)
-
-import qualified Data.Text.IO as T
-
-import Text.Toml.Parser
-import Text.Toml.Types.Toml
 
 import qualified Data.HashMap.Strict as Map
+
+import Text.Toml.Types.Toml
 
 instance ToJSON Toml where
     toJSON (Toml hm) = Object $ Map.map toJSON hm
@@ -48,9 +42,3 @@ instance ToJSON TNamable where
       where
         -- 1987-07-05T17:45:00Z
         format = formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%SZ"
-
-main :: IO ()
-main = either
-    (\err -> putStrLn err >> exitFailure)
-    (T.putStrLn . toStrict . decodeUtf8 . encode)
-    . parseToml "<stdin>" =<< T.getContents

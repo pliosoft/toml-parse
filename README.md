@@ -23,20 +23,12 @@ it was quite difficult to retrofit that for us.
 
 To run the [BurntSushi][] tests:
 
-1. Install `go`, export `$GOPATH`, and add `$GOPATH/bin` to `$PATH`
-1. Install `toml-test`:
+```console
+git submodule update --init
+```
 
-  ```
-  go get github.com/BurntSushi/toml-test
-  ```
-
-1. Run a test:
-
-  ```
-  stack install && toml-test toml-decoder bool
-  ```
-
-TODO: make these executables conditional (e.g. `-ftoml-test`)
+To clone the test files to the `toml-test` directory. These will now be picked
+up by the `BurntSushiSpec` file and run as part of `stack test`.
 
 [BurntSushi]: https://github.com/BurntSushi/toml-test
 [htoml]: https://github.com/cies/htoml
