@@ -9,11 +9,13 @@ module Text.Toml.Query
     , joinPaths
     , indexArray
     , indexArrayAt
+    , lookupArray
     , lookupStr
     , lookupInt
     , lookupBool
     , lookupDouble
     , lookupDate
+    , lookupTable
     ) where
 
 
@@ -22,7 +24,6 @@ import Data.Text(Text)
 import qualified Data.Text as T
 import Data.Time.Clock(UTCTime)
 import Data.Int(Int64)
-import qualified Data.HashMap.Strict as Map
 import Data.Foldable
 import Data.String(IsString(..))
 import qualified Control.Lens as L

@@ -12,7 +12,6 @@ import Data.Bifunctor (first)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Set as Set
-import Data.List (foldl')
 import Data.Time.LocalTime
 import Text.Parsec
 
@@ -76,7 +75,7 @@ value = choice
     tz :: TimeZone
     tz = error "required IO poses a small problem..."
 
-allSame, allArray, allBoolean, allInteger, allString, allDouble, allDatetime :: [TNamable] -> Bool
+allSame, allArray, allBoolean, allInteger, allString, allDouble, allDatetime, allTable :: [TNamable] -> Bool
 allSame [] = True
 allSame ((TArray{}):xs) = allArray xs
 allSame ((TBoolean{}):xs) = allBoolean xs
@@ -84,6 +83,7 @@ allSame ((TString{}):xs) = allString xs
 allSame ((TInteger{}):xs) = allInteger xs
 allSame ((TDouble{}):xs) = allDouble xs
 allSame ((TDatetime{}):xs) = allDatetime xs
+allSame ((TTable{}):xs) = allTable xs
 
 allArray [] = True
 allArray ((TArray{}):as) = allArray as
@@ -108,6 +108,10 @@ allDouble _ = False
 allDatetime [] = True
 allDatetime ((TDatetime{}):as) = allDatetime as
 allDatetime _ = False
+
+allTable [] = True
+allTable ((TTable{}):as) = allTable as
+allTable _ = False
 
 array :: Parser TNamable
 array = do elms <- p

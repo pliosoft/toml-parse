@@ -68,6 +68,9 @@ inContext (t:ts) f v d =
       _ -> error "Not a table"
    where comb x y = TTable Inline (Toml (Map.union (nested x) (nested y)))
 
+-- TODO: what does this case represent?
+inContext _ _ _ _ = error "non-exhaustive"
+
 nested :: TNamable -> Map.HashMap Text TNamable
 nested (TTable _ (Toml t1)) = t1
 nested _ = error "not a table"
