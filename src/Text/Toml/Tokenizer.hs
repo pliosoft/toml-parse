@@ -25,6 +25,7 @@ module Text.Toml.Tokenizer
    import           Data.Ratio
    import Data.Maybe (fromMaybe)
    import Data.Time
+   import Numeric (readHex)
    import System.IO.Unsafe (unsafePerformIO)
 
    type Position = (Int, Int)
@@ -192,15 +193,46 @@ module Text.Toml.Tokenizer
 
    -- | Parse a quoted string, @\"fizbuz\"@.
    dQuotedString :: Position -> Parser (Token, Position)
-   dQuotedString pos = char '"' *> (cons <$> takeWhile (/= '"')) <* char '"'
+   dQuotedString pos = stringWithPosition pos . T.pack
+       <$> between (char dQuote) (char dQuote) (many strChar)
      where
-         cons x = (QuotedStringT pos x, second (+ (fromIntegral $ T.length x + 2)) pos)
+       strChar = try escSeq <|> try (satisfy (\c -> c /= dQuote && c /= '\\'))
+       dQuote  = '\"'
 
-   -- | Parse a quoted string, @\"fizbuz\"@.
+   -- | Parse a singly quoted string, @\'fizbuz\'@.
    sQuotedString :: Position -> Parser (Token, Position)
-   sQuotedString pos = char '\'' *> (cons <$> takeWhile (/= '\'')) <* char '\''
+   sQuotedString pos = stringWithPosition pos . T.pack
+       <$> between (char sQuote) (char sQuote) (many (satisfy (/= sQuote)))
      where
-         cons x = (QuotedStringT pos x, second (+ (fromIntegral $ T.length x + 2)) pos)
+       sQuote = '\''
+
+   escSeq = char '\\' *> escSeqChar
+     where
+       escSeqChar =
+               try (char '"')  *> return '"'
+           <|> try (char '\\') *> return '\\'
+           <|> try (char '/')  *> return '/'
+           <|> try (char 'b')  *> return '\b'
+           <|> try (char 't')  *> return '\t'
+           <|> try (char 'n')  *> return '\n'
+           <|> try (char 'f')  *> return '\f'
+           <|> try (char 'r')  *> return '\r'
+           <|> try (char 'u')  *> unicodeHex 4
+           <|> try (char 'U')  *> unicodeHex 8
+           <?> "escape character"
+
+   unicodeHex :: Int -> Parser Char
+   unicodeHex n = do
+       h <- count n (satisfy isHex)
+       let v = fst . head . readHex $ h
+       return $ if v <= maxChar then toEnum v else '_'
+    where
+      isHex c = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+      maxChar = fromEnum (maxBound :: Char)
+
+   stringWithPosition pos s = (QuotedStringT pos s, second (+ (fromIntegral $ T.length s + 2)) pos)
+
+   between begin end parser = begin *> parser <* end
 
    -- | Helper that takes a simple constructor and a position, and constructs the appropriate result
    pret :: (Position -> Token) -> Position -> Parser (Token, Position)
