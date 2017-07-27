@@ -171,7 +171,7 @@ module Text.Toml.Tokenizer
    sMultilineString :: Position -> Parser (Token, Position)
    sMultilineString pos = do (raw, v) <- match mlparse
                              return (QuotedStringT pos v, second (+ (T.length raw)) pos)
-     where mlparse = do sMultilineToken
+     where mlparse = do void $ sMultilineToken
                         skipWhile (\c -> c == '\n')
                         skipMany multilineWhitespace
                         body <- manyTill chunk sMultilineToken
@@ -184,7 +184,7 @@ module Text.Toml.Tokenizer
    dMultilineString :: Position -> Parser (Token, Position)
    dMultilineString pos = do (raw, v) <- match mlparse
                              return (QuotedStringT pos v, second (+ (T.length raw)) pos)
-     where mlparse = do dMultilineToken
+     where mlparse = do void $ dMultilineToken
                         skipWhile (\c -> c == '\n')
                         skipMany multilineWhitespace
                         body <- manyTill chunk dMultilineToken
