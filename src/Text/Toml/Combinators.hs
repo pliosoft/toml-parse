@@ -19,6 +19,7 @@ module Text.Toml.Combinators
     , float
     , date
     , localDate
+    , newline
     , satisfy
     , module Text.Parsec.Combinator
     ) where
@@ -119,6 +120,11 @@ module Text.Toml.Combinators
    bracketed :: Parser a -> Parser a
    bracketed = between lbracket rbracket
 
+   newline :: Parser ()
+   newline = satisfy it
+      where it (NewlineT _) = Just ()
+            it _ = Nothing
+
    -- | Satisfy the given predicate from the token stream.
    satisfy :: (Token -> Maybe a) -> Parser a
    satisfy = tokenPrim tokenString tokenPosition
@@ -141,6 +147,7 @@ module Text.Toml.Combinators
                         FloatT _ d _ -> "float \"" ++ show d ++ "\""
                         DateT _ d -> "date \"" ++ show d ++ "\""
                         LocalDateT _ d -> "date \"" ++ show d ++ "\""
+                        NewlineT _ -> "newline"
 
    -- | Update the source position to that of the next token in the stream
    tokenPosition :: SourcePos -> Token -> [Token] -> SourcePos

@@ -55,6 +55,7 @@ module Text.Toml.Tokenizer
            <|> true          pos
            <|> false         pos
            <|> identifier    pos
+           <|> newline       pos
 
    -- | A sequence of digits, interpreted as a decimal fraction  "123" => 0.123
    pfdecimal :: Parser Rational
@@ -281,6 +282,9 @@ module Text.Toml.Tokenizer
       cons w = (IdentifierT pos w, second (+ (fromIntegral $ T.length w)) pos)
       wordChar = inClass "-a-zA-Z0-9_"
 
+   -- | Parse a newline \"\n\".
+   newline :: Position -> Parser (Token, Position)
+   newline pos = char '\n' *> pret NewlineT pos
 
    -- | Like 'many', but retains the current source position
    manyWithPos :: (Position -> Parser ( a,  Position))
@@ -304,7 +308,6 @@ module Text.Toml.Tokenizer
       go line col =
          do c <- peekChar
             case c of
-               Just '\n' -> anyChar *> go (line+1) 1
                Just ' '  -> anyChar *> go line (col+1)
                Just '#'  -> anyChar *> takeWhile (/='\n') *> go line (col+1)
                Just '\t' -> anyChar *> go line (col+4)
