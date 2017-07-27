@@ -36,6 +36,12 @@ matrix:
     compiler: ": #stack 7.10.3"
     addons: {apt: {packages: [ghc-7.10.3], sources: [hvr-ghc]}}
 
+  # Include the BurntSushi decoder tests, these are allowed to fail because
+  # we're not fully compliant yet.
+  - env: BUILD=stack ARGS="--resolver lts-5" BURNT_SUSHI=1
+    compiler: ": #stack 7.10.3"
+    addons: {apt: {packages: [ghc-7.10.3], sources: [hvr-ghc]}}
+
   # Nightly builds are allowed to fail
   - env: BUILD=stack ARGS="--resolver nightly"
     compiler: ": #stack nightly"
@@ -53,6 +59,7 @@ matrix:
   allow_failures:
   - env: BUILD=cabal GHCVER=head  CABALVER=head
   - env: BUILD=stack ARGS="--resolver nightly"
+  - env: BUILD=stack ARGS="--resolver lts-5" BURNT_SUSHI=1
 
 before_install:
 # Using compiler above sets CC to an invalid value, so unset it
@@ -77,6 +84,13 @@ install:
 - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
 - if [ -f configure.ac ]; then autoreconf -i; fi
 - |
+  if [ "$BURNT_SUSHI" = "1" ]
+  then
+    git submodule update --init
+  else
+    rm -rf ./toml-test
+  fi
+- |
   case "$BUILD" in
     stack)
       stack --no-terminal --install-ghc $ARGS test --only-dependencies
@@ -87,6 +101,7 @@ install:
       cabal install --only-dependencies --enable-tests --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS
       ;;
   esac
+
 
 script:
 - |
