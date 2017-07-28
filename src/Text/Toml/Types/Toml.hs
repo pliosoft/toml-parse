@@ -14,12 +14,15 @@ module Text.Toml.Types.Toml
     ) where
 
 
+import Prelude hiding (lookup)
+
 import Control.Monad ((<=<))
+import Data.Int(Int64)
 import Data.Text(Text)
 import Data.Time.Clock(UTCTime)
-import Data.Int(Int64)
+
 import qualified Data.HashMap.Strict as Map
-import Prelude hiding (lookup)
+import qualified Data.Text as T
 
 
 -- | Certain TOML constructs can be defined inline or outline. This mostly matters when we round-trip toml
