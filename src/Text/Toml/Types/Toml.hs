@@ -14,6 +14,7 @@ module Text.Toml.Types.Toml
     ) where
 
 
+import Control.Monad ((<=<))
 import Data.Text(Text)
 import Data.Time.Clock(UTCTime)
 import Data.Int(Int64)
@@ -55,32 +56,41 @@ lookup key doc = Map.lookup key (unToml doc)
 lookupDefault :: TNamable -> Text -> Toml -> TNamable
 lookupDefault def key doc = Map.lookupDefault def key (unToml doc)
 
-insertWith :: (TNamable -> TNamable -> TNamable) -> Text -> TNamable -> Toml -> Toml
-insertWith f k v d = Toml $ Map.insertWith f k v (unToml d)
+-- | Like Map.insertWith but taking a Monadic action to resolve conflicts
+insertWithM :: Monad m => (TNamable -> TNamable -> m TNamable) -> Text -> TNamable -> Toml -> m Toml
+insertWithM f k v (Toml m) = maybe
+    (return $ Toml $ Map.insert k v m)
+    (return . Toml . flip (Map.insert k) m <=< f v)
+    $ Map.lookup k m
 
 -- Takes apart a toml doc, runs a transformation at that point, and then puts it back together
-inContext :: [Text] -> (TNamable -> TNamable -> TNamable) -> TNamable -> Toml -> Toml
-inContext (t:[]) f v d = insertWith f t v d
+inContext :: Monad m => [Text] -> (TNamable -> TNamable -> m TNamable) -> TNamable -> Toml -> m Toml
+inContext (t:[]) f v d = insertWithM f t v d
 inContext (t:ts) f v d =
     case lookupDefault (TTable Inline empty) t d of
-      (TTable _ tml) -> let inner = TTable Inline (inContext ts f v tml)
-                         in insertWith comb t inner d
-      _ -> error "Not a table"
-   where comb x y = TTable Inline (Toml (Map.union (nested x) (nested y)))
+        (TTable _ tml) -> do
+            inner <- TTable Inline <$> inContext ts f v tml
+            insertWithM comb t inner d
+        _ -> fail "Not a table"
+  where
+    comb x y = do
+        m <- Map.union
+            <$> nested x
+            <*> nested y
+
+        return $ TTable Inline $ Toml m
+
+    nested (TTable _ (Toml t1)) = return t1
+    nested _ = fail "not a table"
 
 -- TODO: what does this case represent?
-inContext _ _ _ _ = error "non-exhaustive"
-
-nested :: TNamable -> Map.HashMap Text TNamable
-nested (TTable _ (Toml t1)) = t1
-nested _ = error "not a table"
-
+inContext _ _ _ _ = fail "inContext was non-exhaustive"
 
 -- | Insert a whole set of values under a certain key, appending where it is an array and failing otherwise
-appendChildren :: [Text] -> [(Text, TNamable)] -> Toml -> Toml
+appendChildren :: Monad m => [Text] -> [(Text, TNamable)] -> Toml -> m Toml
 appendChildren path n a = inContext path arrayAppend (TArray Inline [TTable Inline (fromList n)]) a
-   where arrayAppend (TArray _ a1) (TArray _ a2) = TArray Inline $ a1 ++ a2
-         arrayAppend _ _ = error "Not arrays"
+   where arrayAppend (TArray _ a1) (TArray _ a2) = return $ TArray Inline $ a1 ++ a2
+         arrayAppend _ _ = fail "Not arrays"
 
 -- | Insert a whole set of values under a certain key
 insertChildren :: [Text] -> [(Text, TNamable)] -> Toml -> Toml

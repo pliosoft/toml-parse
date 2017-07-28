@@ -7,13 +7,13 @@ import Text.Toml.Combinators
 import Text.Toml.Tokenizer
 import Text.Toml.Types.Toml
 
-import Control.Monad ((<=<))
+import Control.Monad ((<=<), foldM, void)
 import Data.Bifunctor (first)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Set as Set
 import Data.Time.LocalTime
-import Text.Parsec
+import Text.Parsec hiding (newline)
 
 -- Internal types for converting from parsed data to final Toml datatype
 type SectionKey = [Text]
@@ -30,18 +30,21 @@ firstDup xs = dup xs Set.empty
 parseToml :: String -> Text -> Either String Toml
 parseToml src = first show . parse parser src <=< tokenize
 
-mergeSection :: Section -> Toml -> Toml
-mergeSection (ObjSection key lst) t = insertChildren key lst t
-mergeSection (ArraySection key lst) t = appendChildren key lst t
+mergeSection :: Toml -> Section -> Parser Toml
+mergeSection t (ObjSection key lst) = return $ insertChildren key lst t
+mergeSection t (ArraySection key lst) = appendChildren key lst t
 
 parser :: Parser Toml
-parser = do (intro, rest) <- sections <* eof
+parser = do optional linebreaks
+            (intro, rest) <- sections
+            optional linebreaks
+            eof
             case firstDup (map fst intro) of
                Just x -> unexpected $ "duplicate " ++ (T.unpack x)
                Nothing ->
                   case firstDup (map skey rest) of
                      Just x -> unexpected $ "duplicate section " ++ (T.unpack (T.intercalate "." x))
-                     Nothing -> return $ foldr mergeSection (fromList intro) rest
+                     Nothing -> foldM mergeSection (fromList intro) rest
 
 skey :: Section -> SectionKey
 skey (ObjSection k _) = k
@@ -54,11 +57,14 @@ sectionKey :: Parser SectionKey
 sectionKey = (choice [identifier, quoted]) `sepBy1` period
 
 section :: Parser Section
-section = ArraySection <$> (try $ doubleBracketed sectionKey) <*> many assignment
-      <|> ObjSection   <$> (bracketed sectionKey)       <*> many assignment
+section = ArraySection <$> (try $ doubleBracketed sectionKey <* linebreaks) <*> many assignment
+      <|> ObjSection   <$> (bracketed sectionKey <* linebreaks) <*> many assignment
 
 assignment :: Parser (Text, TNamable)
-assignment = (,) <$> ((identifier <|> quoted) <* equal) <*> value
+assignment = ((,) <$> ((identifier <|> quoted) <* equal) <*> value) <* linebreaks
+
+linebreaks :: Parser ()
+linebreaks = void $ many newline
 
 value :: Parser TNamable
 value = choice
@@ -118,5 +124,8 @@ array = do elms <- p
            if not $ allSame elms
            then unexpected "Types do not match"
            else return $ TArray Inline elms
-    where p = between lbracket rbracket (try (endBy value comma) <|> sepBy value comma)
-
+    where p = between
+                (lbracket >> optional linebreaks)
+                (rbracket >> optional linebreaks)
+                (try (endBy value (comma <* optional linebreaks))
+                  <|> sepBy value (comma <* optional linebreaks))

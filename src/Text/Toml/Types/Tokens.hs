@@ -22,6 +22,7 @@ module Text.Toml.Types.Tokens(Token(..), tokenPos) where
       | FloatT         !(Int, Int) !Double !Text
       | DateT          !(Int, Int) !ZonedTime
       | LocalDateT     !(Int, Int) !LocalTime
+      | NewlineT       !(Int, Int)
      deriving (Eq, Show)
 
    instance Eq ZonedTime where
@@ -45,4 +46,5 @@ module Text.Toml.Types.Tokens(Token(..), tokenPos) where
       FloatT         pos _ _ -> pos
       DateT          pos _   -> pos
       LocalDateT     pos _   -> pos
+      NewlineT       pos     -> pos
 
