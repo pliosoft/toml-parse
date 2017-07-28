@@ -43,7 +43,8 @@ parser = do
         unexpected $ "duplicate assignment " ++ T.unpack x
 
     forM_ (firstDup $ map skey rest) $ \x ->
-        unexpected $ "duplicate section " ++ T.unpack (T.intercalate "." x)
+        whenObjSection x rest $ do
+            unexpected $ "duplicate section " ++ T.unpack (T.intercalate "." x)
 
     foldM mergeSection (fromList intro) $ rest
 
@@ -57,6 +58,17 @@ parser = do
         if Set.member a s
             then Just a
             else dup (Set.insert a s) as
+
+    whenObjSection :: Monad m => SectionKey -> [Section] -> m () -> m ()
+    whenObjSection k ss f = case lookupSection k ss of
+        Just (ObjSection _ _) -> f
+        _ -> return ()
+
+    lookupSection :: SectionKey -> [Section] -> Maybe Section
+    lookupSection _ [] = Nothing
+    lookupSection k (s:ss)
+        | skey s == k = Just s
+        | otherwise = lookupSection k ss
 
     mergeSection :: Toml -> Section -> Parser Toml
     mergeSection t (ObjSection key lst) = insertChildren key lst t
