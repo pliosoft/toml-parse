@@ -91,8 +91,8 @@ inContext _ _ _ _ = fail "inContext was non-exhaustive"
 
 -- | Insert a whole set of values under a certain key, appending where it is an array and failing otherwise
 appendChildren :: Monad m => [Text] -> [(Text, TNamable)] -> Toml -> m Toml
-appendChildren path n a = inContext path arrayAppend (TArray Inline [TTable Inline (fromList n)]) a
-   where arrayAppend (TArray _ a1) (TArray _ a2) = return $ TArray Inline $ a1 ++ a2
+appendChildren path n a = inContext path arrayAppend (TArray ImplicitOutline [TTable ImplicitOutline (fromList n)]) a
+   where arrayAppend (TArray _ a1) (TArray _ a2) = return $ TArray ImplicitOutline $ a1 ++ a2
          arrayAppend _ _ = fail "Not arrays"
 
 -- | Insert a whole set of values under a certain key
