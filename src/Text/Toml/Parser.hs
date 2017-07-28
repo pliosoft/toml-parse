@@ -40,12 +40,12 @@ parser = do
     (intro, rest) <- between linebreaks linebreaks sections <* eof
 
     forM_ (firstDup $ map fst intro) $ \x ->
-        unexpected $ "duplicate " ++ T.unpack x
+        unexpected $ "duplicate assignment " ++ T.unpack x
 
     forM_ (firstDup $ map skey rest) $ \x ->
         unexpected $ "duplicate section " ++ T.unpack (T.intercalate "." x)
 
-    foldM mergeSection (fromList intro) rest
+    foldM mergeSection (fromList intro) $ rest
 
   where
     firstDup :: Ord a => [a] -> Maybe a
