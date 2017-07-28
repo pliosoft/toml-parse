@@ -59,7 +59,7 @@ parser = do
             else dup (Set.insert a s) as
 
     mergeSection :: Toml -> Section -> Parser Toml
-    mergeSection t (ObjSection key lst) = return $ insertChildren key lst t
+    mergeSection t (ObjSection key lst) = insertChildren key lst t
     mergeSection t (ArraySection key lst) = appendChildren key lst t
 
 sections :: Parser ([(Text, TNamable)], [Section])

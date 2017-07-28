@@ -39,7 +39,6 @@ data TNamable = TTable       Inlined  Toml
               | TBoolean              Bool
               | TDatetime             UTCTime
 
-
 -- | A Toml document or sub-document
 newtype Toml = Toml {unToml :: Map.HashMap Text TNamable }
 
@@ -96,16 +95,11 @@ appendChildren path n a = inContext path arrayAppend (TArray ImplicitOutline [TT
          arrayAppend _ _ = fail "Not arrays"
 
 -- | Insert a whole set of values under a certain key
-insertChildren :: [Text] -> [(Text, TNamable)] -> Toml -> Toml
-insertChildren [] n a = Toml ((unToml a) `Map.union` (Map.fromList n))
-insertChildren (root:rt) n a =
-      insert root (TTable ImplicitOutline
-                     (insertChildren rt n (nestedToml root a))) a
-   where nestedToml x p =
-            case lookup x p of
-               Just (TTable _ t) -> t
-               _ -> empty
-
+insertChildren :: Monad m => [Text] -> [(Text, TNamable)] -> Toml -> m Toml
+insertChildren path n a = inContext path objectAppend (TTable ImplicitOutline $ fromList n) a
+  where
+    objectAppend (TTable _ t1) (TTable _ t2) = return $ TTable ImplicitOutline $ Toml $ unToml t1 `Map.union` unToml t2
+    objectAppend _ _ = fail "Not tables"
 
 -- | Create an empty toml document
 empty :: Toml
