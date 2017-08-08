@@ -14,12 +14,15 @@ module Text.Toml.Types.Toml
     ) where
 
 
+import Prelude hiding (lookup)
+
 import Control.Monad ((<=<))
+import Data.Int(Int64)
 import Data.Text(Text)
 import Data.Time.Clock(UTCTime)
-import Data.Int(Int64)
+
 import qualified Data.HashMap.Strict as Map
-import Prelude hiding (lookup)
+import qualified Data.Text as T
 
 
 -- | Certain TOML constructs can be defined inline or outline. This mostly matters when we round-trip toml
@@ -36,12 +39,24 @@ data TNamable = TTable       Inlined  Toml
               | TBoolean              Bool
               | TDatetime             UTCTime
 
+instance Show TNamable where
+    show (TTable _ x) = show $ unToml x
+    show (TArray _ x) = show x
+    show (TString x) = "\"" ++ T.unpack x ++ "\""
+    show (TInteger x) = "int:" ++ show x
+    show (TDouble x) = "float:" ++ show x
+    show (TBoolean x) = show x
+    show (TDatetime _) = "{Date}"
 
 -- | A Toml document or sub-document
 newtype Toml = Toml {unToml :: Map.HashMap Text TNamable }
 
 fromList :: [(Text, TNamable)] -> Toml
 fromList = Toml . Map.fromList
+
+-- | Union two Tomls
+union :: Toml -> Toml -> Toml
+union a b = Toml $ unToml a `Map.union` unToml b
 
 -- | Given some name/value pair, will insert into a toml document, producing a new document with the specified
 -- namable nested under the provided name.
@@ -68,10 +83,12 @@ inContext :: Monad m => [Text] -> (TNamable -> TNamable -> m TNamable) -> TNamab
 inContext (t:[]) f v d = insertWithM f t v d
 inContext (t:ts) f v d =
     case lookupDefault (TTable Inline empty) t d of
-        (TTable _ tml) -> do
-            inner <- TTable Inline <$> inContext ts f v tml
+        (TTable i tml) -> do
+            inner <- TTable i <$> inContext ts f v tml
             insertWithM comb t inner d
-        _ -> fail "Not a table"
+
+        x -> return $ fromList [(t, x)]
+
   where
     comb x y = do
         m <- Map.union
@@ -83,26 +100,29 @@ inContext (t:ts) f v d =
     nested (TTable _ (Toml t1)) = return t1
     nested _ = fail "not a table"
 
--- TODO: what does this case represent?
-inContext _ _ _ _ = fail "inContext was non-exhaustive"
+inContext _ _ _ _ = fail "inContext called with empty path"
 
 -- | Insert a whole set of values under a certain key, appending where it is an array and failing otherwise
 appendChildren :: Monad m => [Text] -> [(Text, TNamable)] -> Toml -> m Toml
-appendChildren path n a = inContext path arrayAppend (TArray Inline [TTable Inline (fromList n)]) a
-   where arrayAppend (TArray _ a1) (TArray _ a2) = return $ TArray Inline $ a1 ++ a2
-         arrayAppend _ _ = fail "Not arrays"
+appendChildren path n a = inContext path arrayAppend (TArray ImplicitOutline [TTable ImplicitOutline (fromList n)]) a
+   where
+     arrayAppend (TArray _ a1) (TArray _ a2) = return $ TArray ImplicitOutline $ a2 ++ a1
+     arrayAppend l r = fail $ unlines
+        [ "Attempted to append non-arrays"
+        , "LHS: " ++ show l
+        , "RHS: " ++ show r
+        ]
 
 -- | Insert a whole set of values under a certain key
-insertChildren :: [Text] -> [(Text, TNamable)] -> Toml -> Toml
-insertChildren [] n a = Toml ((unToml a) `Map.union` (Map.fromList n))
-insertChildren (root:rt) n a =
-      insert root (TTable ImplicitOutline
-                     (insertChildren rt n (nestedToml root a))) a
-   where nestedToml x p =
-            case lookup x p of
-               Just (TTable _ t) -> t
-               _ -> empty
-
+insertChildren :: Monad m => [Text] -> [(Text, TNamable)] -> Toml -> m Toml
+insertChildren path n a = inContext path tableAppend (TTable ImplicitOutline $ fromList n) a
+  where
+    tableAppend (TTable _ t1) (TTable _ t2) = return $ TTable ImplicitOutline $ union t1 t2
+    tableAppend l r = fail $ unlines
+        [ "Attempted to append non-tables"
+        , "LHS: " ++ show l
+        , "RHS: " ++ show r
+        ]
 
 -- | Create an empty toml document
 empty :: Toml
